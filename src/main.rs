@@ -1,11 +1,26 @@
 use std::fs::{metadata, File};
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::{
     fs::{self, DirEntry},
     process,
 };
 
 use clap::{arg, command};
+
+fn start_folder_descent(string: &String, path: &PathBuf) {
+    let paths = match fs::read_dir(path) {
+        Ok(value) => value,
+        Err(error) => {
+            println!("Failed to read folder contents: {error}");
+            process::exit(-1);
+        }
+    };
+
+    for path in paths.flatten() {
+        find_recurse(string, &path);
+    }
+}
 
 fn find_recurse(string: &String, path: &DirEntry) {
     let path = path.path();
@@ -21,17 +36,7 @@ fn find_recurse(string: &String, path: &DirEntry) {
             .expect("Failed to read file metadata")
             .is_dir()
         {
-            let paths = match fs::read_dir(path) {
-                Ok(value) => value,
-                Err(error) => {
-                    println!("Failed to read folder contents: {error}");
-                    process::exit(-1);
-                }
-            };
-
-            for path in paths.flatten() {
-                find_recurse(string, &path);
-            }
+            start_folder_descent(string, &path);
         }
 
         return;
@@ -62,15 +67,5 @@ fn main() {
     // clap forces the user to enter this argument, otherwise we will never reach this code, so we can just unwrap here
     let string = matches.get_one::<String>("string").unwrap();
 
-    let paths = match fs::read_dir("") {
-        Ok(value) => value,
-        Err(error) => {
-            println!("Failed to read folder contents: {error}");
-            process::exit(-1);
-        }
-    };
-
-    for path in paths.flatten() {
-        find_recurse(string, &path);
-    }
+    start_folder_descent(string, &PathBuf::from(""));
 }
