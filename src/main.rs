@@ -1,56 +1,62 @@
-use std::fs::{metadata, File};
+use std::error::Error;
+use std::fs::File;
+use std::fs::{self, DirEntry};
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-use std::{
-    fs::{self, DirEntry},
-    process,
-};
+use std::path::Path;
 
 use clap::{arg, command};
 
-fn start_folder_descent(string: &String, path: &PathBuf) {
-    let paths = match fs::read_dir(path) {
-        Ok(value) => value,
-        Err(error) => {
-            println!("Failed to read folder contents: {error}");
-            process::exit(-1);
-        }
-    };
-
-    for path in paths.flatten() {
-        find_recurse(string, &path);
+fn start_folder_descent(needle: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+    for path in fs::read_dir(path)?.flatten() {
+        find_recurse(needle, &path);
     }
+
+    Ok(())
 }
 
-fn find_recurse(string: &String, path: &DirEntry) {
-    let path = path.path();
+fn find_needle_in_file(needle: &str, entry: &DirEntry) -> Result<(), Box<dyn Error>> {
+    let path = entry.path();
     let file_name = match path.to_str() {
-        None => return,
+        None => return Ok(()),
         Some(file_name) => file_name,
     };
 
-    let file = match File::open(file_name) {
-        Ok(file) => file,
+    let reader = BufReader::new(File::open(file_name)?);
+    for (line_num, line) in reader.lines().enumerate() {
+        let line = line?;
+        if line.contains(needle) {
+            println!("{file_name} @ {}: {}", line_num + 1, line);
+        }
+    }
+
+    Ok(())
+}
+
+fn find_recurse(needle: &str, entry: &DirEntry) {
+    let file_type = match entry.file_type() {
+        Ok(file_type) => file_type,
         Err(_) => {
-            if metadata(path.clone())
-                .expect("Failed to read file metadata")
-                .is_dir()
-            {
-                start_folder_descent(string, &path);
-            }
+            eprintln!(
+                "Failed to determine file type for {}, skipping",
+                entry.path().display()
+            );
 
             return;
         }
     };
 
-    let reader = BufReader::new(file);
-
-    for (line_num, line) in reader.lines().enumerate() {
-        if let Ok(line) = line {
-            if line.contains(string) {
-                println!("{file_name} @ {}: {line}", line_num + 1);
-            }
-        }
+    if file_type.is_file() {
+        find_needle_in_file(needle, entry).unwrap_or_else(|err| {
+            eprintln!("Failed to search file {}: {}", entry.path().display(), err);
+        });
+    } else if file_type.is_dir() {
+        start_folder_descent(needle, &entry.path()).unwrap_or_else(|err| {
+            eprintln!(
+                "Failed to search folder {}: {}",
+                entry.path().display(),
+                err
+            );
+        });
     }
 }
 
@@ -64,8 +70,8 @@ fn main() {
         )
         .get_matches();
 
-    let string = matches
+    let needle = matches
         .get_one::<String>("string")
         .expect("Expected input string");
-    start_folder_descent(string, &PathBuf::from(""));
+    start_folder_descent(needle, Path::new("")).expect("Failed to start search");
 }
