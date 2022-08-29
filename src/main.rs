@@ -25,7 +25,7 @@ fn find_needle_in_file(needle: &str, entry: &DirEntry) -> Result<(), Box<dyn Err
     for (line_num, line) in reader.lines().enumerate() {
         let line = line?;
         if line.contains(needle) {
-            println!("{file_name} @ {}: {}", line_num + 1, line);
+            println!("{file_name} @ {}: {line}", line_num + 1);
         }
     }
 
