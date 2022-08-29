@@ -7,3 +7,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3.2.17", features = ["cargo"] }
+
+[profile.release]
+lto = "fat"
+opt-level = 3
+panic = "abort"
+strip = "symbols"
+overflow-checks = false
+debug-assertions = false
