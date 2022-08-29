@@ -44,9 +44,14 @@ fn find_recurse(string: &String, path: &DirEntry) {
 
     let reader = BufReader::new(file.unwrap());
 
-    let mut line_num = 0_u64;
-    for line in reader.lines().flatten() {
+    for (mut line_num, line) in reader.lines().enumerate() {
         line_num += 1;
+
+        if line.is_err() {
+            continue;
+        }
+
+        let line = line.unwrap();
 
         if line.contains(string) {
             println!("{file_name} @ {line_num}: {line}");
