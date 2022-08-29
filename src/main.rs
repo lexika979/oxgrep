@@ -44,9 +44,7 @@ fn find_recurse(string: &String, path: &DirEntry) {
 
     let reader = BufReader::new(file.unwrap());
 
-    for (mut line_num, line) in reader.lines().enumerate() {
-        line_num += 1;
-
+    for (line_num, line) in reader.lines().enumerate() {
         if line.is_err() {
             continue;
         }
@@ -54,7 +52,7 @@ fn find_recurse(string: &String, path: &DirEntry) {
         let line = line.unwrap();
 
         if line.contains(string) {
-            println!("{file_name} @ {line_num}: {line}");
+            println!("{file_name} @ {}: {line}", line_num + 1);
         }
     }
 }
