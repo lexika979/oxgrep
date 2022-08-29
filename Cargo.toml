@@ -9,9 +9,9 @@ edition = "2021"
 clap = { version = "3.2.17", features = ["cargo"] }
 
 [profile.release]
-lto = "fat"
+lto = true
 opt-level = 3
 panic = "abort"
-strip = "symbols"
+strip = true
 overflow-checks = false
 debug-assertions = false
