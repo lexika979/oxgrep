@@ -24,35 +24,22 @@ fn start_folder_descent(string: &String, path: &PathBuf) {
 
 fn find_recurse(string: &String, path: &DirEntry) {
     let path = path.path();
-    let file_name = path.to_str();
-    if file_name.is_none() {
-        return;
-    }
+    if let Some(file_name) = path.to_str() {
+        if let Ok(file) = File::open(file_name) {
+            let reader = BufReader::new(file);
 
-    let file_name = file_name.unwrap();
-    let file = File::open(file_name);
-    if file.is_err() {
-        if metadata(path.clone())
+            for (line_num, line) in reader.lines().enumerate() {
+                if let Ok(line) = line {
+                    if line.contains(string) {
+                        println!("{file_name} @ {}: {line}", line_num + 1);
+                    }
+                }
+            }
+        } else if metadata(path.clone())
             .expect("Failed to read file metadata")
             .is_dir()
         {
             start_folder_descent(string, &path);
-        }
-
-        return;
-    }
-
-    let reader = BufReader::new(file.unwrap());
-
-    for (line_num, line) in reader.lines().enumerate() {
-        if line.is_err() {
-            continue;
-        }
-
-        let line = line.unwrap();
-
-        if line.contains(string) {
-            println!("{file_name} @ {}: {line}", line_num + 1);
         }
     }
 }
@@ -67,8 +54,8 @@ fn main() {
         )
         .get_matches();
 
-    // clap forces the user to enter this argument, otherwise we will never reach this code, so we can just unwrap here
-    let string = matches.get_one::<String>("string").unwrap();
-
+    let string = matches
+        .get_one::<String>("string")
+        .expect("Expected input string");
     start_folder_descent(string, &PathBuf::from(""));
 }
