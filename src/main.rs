@@ -24,22 +24,32 @@ fn start_folder_descent(string: &String, path: &PathBuf) {
 
 fn find_recurse(string: &String, path: &DirEntry) {
     let path = path.path();
-    if let Some(file_name) = path.to_str() {
-        if let Ok(file) = File::open(file_name) {
-            let reader = BufReader::new(file);
+    let file_name = match path.to_str() {
+        None => return,
+        Some(file_name) => file_name,
+    };
 
-            for (line_num, line) in reader.lines().enumerate() {
-                if let Ok(line) = line {
-                    if line.contains(string) {
-                        println!("{file_name} @ {}: {line}", line_num + 1);
-                    }
-                }
+    let file = match File::open(file_name) {
+        Ok(file) => file,
+        Err(_) => {
+            if metadata(path.clone())
+                .expect("Failed to read file metadata")
+                .is_dir()
+            {
+                start_folder_descent(string, &path);
             }
-        } else if metadata(path.clone())
-            .expect("Failed to read file metadata")
-            .is_dir()
-        {
-            start_folder_descent(string, &path);
+
+            return;
+        }
+    };
+
+    let reader = BufReader::new(file);
+
+    for (line_num, line) in reader.lines().enumerate() {
+        if let Ok(line) = line {
+            if line.contains(string) {
+                println!("{file_name} @ {}: {line}", line_num + 1);
+            }
         }
     }
 }
