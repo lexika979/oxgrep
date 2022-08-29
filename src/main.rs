@@ -33,16 +33,14 @@ fn find_needle_in_file(needle: &str, entry: &DirEntry) -> Result<(), Box<dyn Err
 }
 
 fn find_recurse(needle: &str, entry: &DirEntry) {
-    let file_type = match entry.file_type() {
-        Ok(file_type) => file_type,
-        Err(_) => {
-            eprintln!(
-                "Failed to determine file type for {}, skipping",
-                entry.path().display()
-            );
-
-            return;
-        }
+    let file_type = if let Ok(file_type) = entry.file_type() {
+        file_type
+    } else {
+        eprintln!(
+            "Failed to determine file type for {}, skipping",
+            entry.path().display()
+        );
+        return;
     };
 
     if file_type.is_file() {
